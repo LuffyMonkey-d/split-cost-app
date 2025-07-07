@@ -1,103 +1,123 @@
-import Image from "next/image";
+"use client"
+import { useState } from "react";
+
+type Member = { id: number; name: string };
+type Payment = { id: number; payerId: number; amount: number; description: string };
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [members, setMembers] = useState<Member[]>([]);
+  const [memberName, setMemberName] = useState("");
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [payment, setPayment] = useState<{ payerId: number | ""; amount: string; description: string }>({ payerId: "", amount: "", description: "" });
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  // 参加者追加
+  const addMember = () => {
+    if (!memberName.trim()) return;
+    setMembers((prev) => [...prev, { id: Date.now(), name: memberName.trim() }]);
+    setMemberName("");
+  };
+
+  // 支払い追加
+  const addPayment = () => {
+    if (payment.payerId === "" || !payment.amount || Number(payment.amount) <= 0) return;
+    setPayments((prev) => [
+      ...prev,
+      { id: Date.now(), payerId: Number(payment.payerId), amount: Number(payment.amount), description: payment.description }
+    ]);
+    setPayment({ payerId: "", amount: "", description: "" });
+  };
+
+  // 割り勘計算
+  const calcSettlement = () => {
+    if (members.length === 0) return [];
+    const total = payments.reduce((sum, p) => sum + p.amount, 0);
+    const avg = total / members.length;
+    // 各自の支払い合計
+    const paidMap = Object.fromEntries(members.map((m) => [m.id, 0]));
+    payments.forEach((p) => { paidMap[p.payerId] += p.amount; });
+    // 各自の精算額
+    return members.map((m) => ({ name: m.name, diff: Math.round((paidMap[m.id] - avg) * 100) / 100 }));
+  };
+
+  const settlement = calcSettlement();
+
+  return (
+    <div className="max-w-2xl mx-auto py-10 px-4">
+      <h1 className="text-2xl font-bold mb-6">旅行費用割り勘アプリ</h1>
+
+      {/* 参加者追加 */}
+      <section className="mb-8">
+        <h2 className="font-semibold mb-2">参加者</h2>
+        <div className="flex gap-2 mb-2">
+          <input
+            className="border rounded px-2 py-1"
+            value={memberName}
+            onChange={(e) => setMemberName(e.target.value)}
+            placeholder="名前を入力"
+          />
+          <button className="bg-blue-500 text-white rounded px-3 py-1" onClick={addMember}>追加</button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+        <ul className="flex gap-2 flex-wrap">
+          {members.map((m) => (
+            <li key={m.id} className="bg-gray-100 rounded px-2 py-1">{m.name}</li>
+          ))}
+        </ul>
+      </section>
+
+      {/* 支払い追加 */}
+      <section className="mb-8">
+        <h2 className="font-semibold mb-2">支払い記録</h2>
+        <div className="flex flex-col sm:flex-row gap-2 mb-2">
+          <select
+            className="border rounded px-2 py-1"
+            value={payment.payerId}
+            onChange={(e) => {
+              const val = e.target.value;
+              setPayment((p) => ({ ...p, payerId: val === "" ? "" : Number(val) }));
+            }}
+          >
+            <option value="">支払者</option>
+            {members.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
+          <input
+            className="border rounded px-2 py-1"
+            type="number"
+            min="0"
+            value={payment.amount}
+            onChange={(e) => setPayment((p) => ({ ...p, amount: e.target.value }))}
+            placeholder="金額"
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+          <input
+            className="border rounded px-2 py-1"
+            value={payment.description}
+            onChange={(e) => setPayment((p) => ({ ...p, description: e.target.value }))}
+            placeholder="用途 (例: ホテル)"
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          <button className="bg-green-500 text-white rounded px-3 py-1" onClick={addPayment}>追加</button>
+        </div>
+        <ul>
+          {payments.map((p) => {
+            const payer = members.find((m) => m.id === p.payerId)?.name || "";
+            return (
+              <li key={p.id} className="text-sm mb-1">{payer} が {p.amount} 円 ({p.description}) を支払い</li>
+            );
+          })}
+        </ul>
+      </section>
+
+      {/* 精算結果 */}
+      <section>
+        <h2 className="font-semibold mb-2">精算結果</h2>
+        <ul>
+          {settlement.map((s) => (
+            <li key={s.name} className="text-sm">
+              {s.name}：{s.diff > 0 ? `+${s.diff}円 受け取り` : s.diff < 0 ? `${s.diff}円 支払い` : "±0円"}
+            </li>
+          ))}
+        </ul>
+      </section>
     </div>
   );
 }
