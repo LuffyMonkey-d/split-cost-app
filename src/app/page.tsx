@@ -54,7 +54,7 @@ export default function Home() {
   const [isLoadingRates, setIsLoadingRates] = useState(false);
 
   // 全角数字を半角に変換する関数
-  const toHalfWidth = (str: string) => str.replace(/[０-９]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0));
+  const toHalfWidth = (inputString: string) => inputString.replace(/[０-９]/g, fullWidthChar => String.fromCharCode(fullWidthChar.charCodeAt(0) - 0xFEE0));
 
   // 為替レート取得関数
   const fetchExchangeRates = async () => {
@@ -137,48 +137,48 @@ export default function Home() {
   };
 
   // 通貨を日本円に換算する関数
-  const convertToJPY = (amount: number, currency: string): number => {
-    if (currency === 'JPY') return amount;
+  const convertToJPY = (originalAmount: number, currencyCode: string): number => {
+    if (currencyCode === 'JPY') return originalAmount;
     
     if (!exchangeRates) {
       console.log('為替レートが取得されていません');
-      return amount; // レートがない場合は元の金額を返す
+      return originalAmount; // レートがない場合は元の金額を返す
     }
     
-    let jpyAmount: number;
+    let jpyConvertedAmount: number;
     
-    if (currency === 'USD') {
+    if (currencyCode === 'USD') {
       // USDの場合は直接USDJPYレートを使用
-      const usdJpyRate = exchangeRates.rates['USDJPY'];
-      if (usdJpyRate) {
-        jpyAmount = amount * usdJpyRate;
-        console.log('USD換算結果:', { amount, usdJpyRate, jpyAmount });
-        return Math.round(jpyAmount * 100) / 100; // 小数点以下2桁で四捨五入
+      const usdToJpyRate = exchangeRates.rates['USDJPY'];
+      if (usdToJpyRate) {
+        jpyConvertedAmount = originalAmount * usdToJpyRate;
+        console.log('USD換算結果:', { originalAmount, usdToJpyRate, jpyConvertedAmount });
+        return Math.round(jpyConvertedAmount * 100) / 100; // 小数点以下2桁で四捨五入
       }
     } else {
       // その他の通貨は USD基準で換算
-      const usdRate = exchangeRates.rates[`USD${currency}`];
-      const jpyRate = exchangeRates.rates['USDJPY'];
+      const usdToCurrencyRate = exchangeRates.rates[`USD${currencyCode}`];
+      const usdToJpyRate = exchangeRates.rates['USDJPY'];
       
       console.log('為替レート情報:', {
-        currency,
-        amount,
-        usdRate,
-        jpyRate,
-        availableRates: Object.keys(exchangeRates.rates).filter(key => key.startsWith('USD'))
+        currencyCode,
+        originalAmount,
+        usdToCurrencyRate,
+        usdToJpyRate,
+        availableRates: Object.keys(exchangeRates.rates).filter(rateKey => rateKey.startsWith('USD'))
       });
       
-      if (usdRate && jpyRate) {
+      if (usdToCurrencyRate && usdToJpyRate) {
         // 通貨 → USD → JPY の順で換算
-        const usdAmount = amount / usdRate;
-        jpyAmount = usdAmount * jpyRate;
-        console.log('換算結果:', { usdAmount, jpyAmount });
-        return Math.round(jpyAmount * 100) / 100; // 小数点以下2桁で四捨五入
+        const usdEquivalentAmount = originalAmount / usdToCurrencyRate;
+        jpyConvertedAmount = usdEquivalentAmount * usdToJpyRate;
+        console.log('換算結果:', { usdEquivalentAmount, jpyConvertedAmount });
+        return Math.round(jpyConvertedAmount * 100) / 100; // 小数点以下2桁で四捨五入
       }
     }
     
     console.log('為替レートが見つかりません');
-    return amount; // 換算できない場合は元の金額を返す
+    return originalAmount; // 換算できない場合は元の金額を返す
   };
 
   // 参加者追加
@@ -194,33 +194,33 @@ export default function Home() {
     if (payment.payerId === "" || !payment.amount || Number(payment.amount) <= 0) return;
     
     const originalAmount = Number(payment.amount);
-    const jpyAmount = convertToJPY(originalAmount, payment.currency);
+    const jpyConvertedAmount = convertToJPY(originalAmount, payment.currency);
     
-    setPayments((prev) => [
-      ...prev,
+    setPayments((previousPayments) => [
+      ...previousPayments,
       { 
         id: uuidv4(), 
         payerId: payment.payerId as string, 
-        amount: jpyAmount, // 日本円換算額を保存
+        amount: jpyConvertedAmount, // 日本円換算額を保存
         currency: payment.currency,
         description: payment.description,
         originalAmount: originalAmount, // 元の金額を保存
-        exchangeRate: jpyAmount / originalAmount // 為替レートを保存
+        exchangeRate: jpyConvertedAmount / originalAmount // 為替レートを保存
       }
     ]);
     setPayment({ payerId: "", amount: "", currency: "JPY", description: "" });
   };
 
   // 支払い削除
-  const deletePayment = (id: string) => {
-    setPayments((prev) => prev.filter((p) => p.id !== id));
+  const deletePayment = (paymentId: string) => {
+    setPayments((previousPayments) => previousPayments.filter((payment) => payment.id !== paymentId));
   };
 
   // 支払い編集（編集フォームは保留、ロジックのみ）
-  const editPayment = (id: string) => {
-    const paymentToEdit = payments.find(p => p.id === id);
+  const editPayment = (paymentId: string) => {
+    const paymentToEdit = payments.find(payment => payment.id === paymentId);
     if (paymentToEdit) {
-      setEditingPaymentId(id);
+      setEditingPaymentId(paymentId);
       setEditingPayment({
         payerId: paymentToEdit.payerId,
         amount: paymentToEdit.amount.toString(),
@@ -235,20 +235,20 @@ export default function Home() {
     if (!editingPaymentId || !editingPayment.amount || Number(editingPayment.amount) <= 0) return;
     
     const originalAmount = Number(editingPayment.amount);
-    const jpyAmount = convertToJPY(originalAmount, editingPayment.currency);
+    const jpyConvertedAmount = convertToJPY(originalAmount, editingPayment.currency);
     
-    setPayments(prev => prev.map(p => 
-      p.id === editingPaymentId 
+    setPayments(previousPayments => previousPayments.map(payment => 
+      payment.id === editingPaymentId 
         ? { 
-            ...p, 
+            ...payment, 
             payerId: editingPayment.payerId, 
-            amount: jpyAmount, // 日本円換算額を保存
+            amount: jpyConvertedAmount, // 日本円換算額を保存
             currency: editingPayment.currency,
             description: editingPayment.description,
             originalAmount: originalAmount, // 元の金額を保存
-            exchangeRate: jpyAmount / originalAmount // 為替レートを保存
+            exchangeRate: jpyConvertedAmount / originalAmount // 為替レートを保存
           }
-        : p
+        : payment
     ));
     
     setEditingPaymentId(null);
@@ -266,20 +266,20 @@ export default function Home() {
     if (members.length === 0) return [];
     
     // すべての支払いを日本円に換算して合計を計算
-    const totalJPY = payments.reduce((sum, p) => sum + p.amount, 0);
-    const avgJPY = totalJPY / members.length;
+    const totalJPYAmount = payments.reduce((sum, payment) => sum + payment.amount, 0);
+    const averageJPYAmount = totalJPYAmount / members.length;
     
     // 各自の支払い合計（日本円換算）
-    const paidMap = Object.fromEntries(members.map((m) => [m.id, 0]));
-    payments.forEach((p) => { 
-      paidMap[p.payerId] += p.amount; // p.amountは既に日本円換算済み
+    const memberPaidAmounts = Object.fromEntries(members.map((member) => [member.id, 0]));
+    payments.forEach((payment) => { 
+      memberPaidAmounts[payment.payerId] += payment.amount; // payment.amountは既に日本円換算済み
     });
     
     // 各自の精算額
-    return members.map((m) => ({ 
-      id: m.id, 
-      name: m.name, 
-      diff: Math.round((paidMap[m.id] - avgJPY) * 100) / 100 
+    return members.map((member) => ({ 
+      id: member.id, 
+      name: member.name, 
+      diff: Math.round((memberPaidAmounts[member.id] - averageJPYAmount) * 100) / 100 
     }));
   };
 
@@ -289,36 +289,36 @@ export default function Home() {
   const isAmountInvalid = payment.amount === "" || Number(payment.amount) <= 0;
 
   // 参加者削除
-  const deleteMember = (id: string) => {
-    setMembers((prev) => prev.filter((m) => m.id !== id));
+  const deleteMember = (memberId: string) => {
+    setMembers((previousMembers) => previousMembers.filter((member) => member.id !== memberId));
   };
 
   // 支払い詳細を取得する関数
   const getPaymentDetails = (memberId: string) => {
     return payments
-      .filter(p => p.payerId === memberId)
-      .map(p => ({
-        amount: p.originalAmount || p.amount,
-        currency: p.currency,
-        jpyAmount: p.amount,
-        description: p.description
+      .filter(payment => payment.payerId === memberId)
+      .map(payment => ({
+        amount: payment.originalAmount || payment.amount,
+        currency: payment.currency,
+        jpyAmount: payment.amount,
+        description: payment.description
       }));
   };
 
   // 通貨別の支払い合計を取得する関数
   const getCurrencyTotals = () => {
-    const totals: Record<string, { amount: number; jpyAmount: number }> = {};
+    const currencyTotals: Record<string, { amount: number; jpyAmount: number }> = {};
     
-    payments.forEach(p => {
-      const currency = p.currency;
-      if (!totals[currency]) {
-        totals[currency] = { amount: 0, jpyAmount: 0 };
+    payments.forEach(payment => {
+      const currencyCode = payment.currency;
+      if (!currencyTotals[currencyCode]) {
+        currencyTotals[currencyCode] = { amount: 0, jpyAmount: 0 };
       }
-      totals[currency].amount += p.originalAmount || p.amount;
-      totals[currency].jpyAmount += p.amount || 0;
+      currencyTotals[currencyCode].amount += payment.originalAmount || payment.amount;
+      currencyTotals[currencyCode].jpyAmount += payment.amount || 0;
     });
     
-    return totals;
+    return currencyTotals;
   };
 
   useEffect(() => {
@@ -357,10 +357,10 @@ export default function Home() {
           <button className="bg-blue-500 hover:bg-blue-600 text-white rounded px-4 h-10 font-semibold transition" onClick={addMember}>追加</button>
         </div>
         <ul className="flex gap-2 flex-wrap">
-          {members.map((m) => (
-            <li key={m.id} className="bg-gray-100 rounded px-3 py-1 text-sm border border-gray-300 flex items-center gap-1">
-              {m.name}
-              <button className="ml-1 text-red-500 hover:text-red-700 text-xs" onClick={() => deleteMember(m.id)} title="削除">×</button>
+          {members.map((member) => (
+            <li key={member.id} className="bg-gray-100 rounded px-3 py-1 text-sm border border-gray-300 flex items-center gap-1">
+              {member.name}
+              <button className="ml-1 text-red-500 hover:text-red-700 text-xs" onClick={() => deleteMember(member.id)} title="削除">×</button>
             </li>
           ))}
         </ul>
@@ -396,8 +396,8 @@ export default function Home() {
               }}
             >
               <option value="">支払者を選択</option>
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>{m.name}</option>
+              {members.map((member) => (
+                <option key={member.id} value={member.id}>{member.name}</option>
               ))}
             </select>
             <div className="min-h-[14px]"></div>
@@ -468,13 +468,13 @@ export default function Home() {
           </div>
         </div>
         <ul className="divide-y divide-gray-200 bg-gray-50 rounded-lg border border-gray-200">
-          {payments.map((p) => {
-            const payer = members.find((m) => m.id === p.payerId)?.name || "";
-            const isEditing = editingPaymentId === p.id;
+          {payments.map((payment) => {
+            const payer = members.find((member) => member.id === payment.payerId)?.name || "";
+            const isEditing = editingPaymentId === payment.id;
             
             if (isEditing) {
               return (
-                <li key={p.id} className="px-3 py-3 bg-blue-50 border-l-4 border-blue-400">
+                <li key={payment.id} className="px-3 py-3 bg-blue-50 border-l-4 border-blue-400">
                   <div className="flex flex-col sm:flex-row gap-2 mb-3">
                     <div className="flex-1">
                       <label className="block text-xs font-medium mb-1 text-gray-600">支払者</label>
@@ -544,16 +544,16 @@ export default function Home() {
             }
             
             return (
-              <li key={p.id} className="flex items-center gap-2 px-3 py-2 text-sm">
+              <li key={payment.id} className="flex items-center gap-2 px-3 py-2 text-sm">
                 <span className="flex-1">
-                  {payer} が {p.originalAmount || p.amount} {p.currency} 
-                  {p.currency !== 'JPY' && p.exchangeRate && (
-                    <span className="text-gray-500"> (≈ ¥{p.amount.toFixed(2)})</span>
+                  {payer} が {payment.originalAmount || payment.amount} {payment.currency} 
+                  {payment.currency !== 'JPY' && payment.exchangeRate && (
+                    <span className="text-gray-500"> (≈ ¥{payment.amount.toFixed(2)})</span>
                   )}
-                  <span className="text-gray-500"> ({p.description})</span>
+                  <span className="text-gray-500"> ({payment.description})</span>
                 </span>
-                <button className="text-xs text-red-500 hover:underline" onClick={() => deletePayment(p.id)}>削除</button>
-                <button className="text-xs text-blue-500 hover:underline" onClick={() => editPayment(p.id)}>編集</button>
+                <button className="text-xs text-red-500 hover:underline" onClick={() => deletePayment(payment.id)}>削除</button>
+                <button className="text-xs text-blue-500 hover:underline" onClick={() => editPayment(payment.id)}>編集</button>
               </li>
             );
           })}
@@ -603,17 +603,17 @@ export default function Home() {
         )}
         
         <ul className="divide-y divide-gray-200 bg-gray-50 rounded-lg border border-gray-200">
-          {settlement.map((s) => {
-            const paymentDetails = getPaymentDetails(s.id);
+          {settlement.map((settlementItem) => {
+            const paymentDetails = getPaymentDetails(settlementItem.id);
             return (
-              <li key={s.id} className="p-3">
-                <div className={`text-sm flex items-center gap-2 mb-2 ${s.diff > 0 ? "text-green-600" : s.diff < 0 ? "text-red-500" : "text-gray-500"}`}>
-                  <span className="flex-1 font-medium">{s.name}</span>
+              <li key={settlementItem.id} className="p-3">
+                <div className={`text-sm flex items-center gap-2 mb-2 ${settlementItem.diff > 0 ? "text-green-600" : settlementItem.diff < 0 ? "text-red-500" : "text-gray-500"}`}>
+                  <span className="flex-1 font-medium">{settlementItem.name}</span>
                   <span>
-                    {s.diff > 0
-                      ? `+${s.diff}円 受け取り`
-                      : s.diff < 0
-                      ? `${s.diff}円 支払い`
+                    {settlementItem.diff > 0
+                      ? `+${settlementItem.diff}円 受け取り`
+                      : settlementItem.diff < 0
+                      ? `${settlementItem.diff}円 支払い`
                       : "±0円"}
                   </span>
                 </div>
