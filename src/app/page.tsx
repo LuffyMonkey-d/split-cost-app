@@ -332,30 +332,33 @@ export default function Home() {
       {/* 参加者追加 */}
       <section className="mb-8 bg-white rounded-lg shadow p-6 border border-gray-200">
         <h2 className="font-semibold mb-4 text-lg border-b pb-2">参加者</h2>
-        <div className="flex flex-col sm:flex-row gap-2 mb-4 items-end">
+        <form 
+          onSubmit={(e) => {
+            e.preventDefault();
+            addMember();
+          }}
+          className="flex flex-col sm:flex-row gap-2 mb-4 items-end"
+        >
           <div className="flex-1 flex items-center gap-2">
             <label className="hidden sm:block text-sm font-medium w-14" htmlFor="memberName">名前</label>
             <input
               id="memberName"
+              name="memberName"
+              type="text"
               className="border rounded px-3 h-10 w-full focus:outline-none focus:ring-2 focus:ring-blue-300"
               value={memberName}
               onChange={(e) => setMemberName(e.target.value)}
               placeholder="名前を入力"
-              onKeyDown={(e) => {
-                if ((e.nativeEvent as any).isComposing) return;
-                if (e.key === "Enter") {
-                  addMember();
-                }
-              }}
-              onCompositionEnd={() => {
-                if (memberName.trim()) {
-                  addMember();
-                }
-              }}
+              required
             />
           </div>
-          <button className="bg-blue-500 hover:bg-blue-600 text-white rounded px-4 h-10 font-semibold transition" onClick={addMember}>追加</button>
-        </div>
+          <button 
+            type="submit"
+            className="bg-blue-500 hover:bg-blue-600 text-white rounded px-4 h-10 font-semibold transition"
+          >
+            追加
+          </button>
+        </form>
         <ul className="flex gap-2 flex-wrap">
           {members.map((member) => (
             <li key={member.id} className="bg-gray-100 rounded px-3 py-1 text-sm border border-gray-300 flex items-center gap-1">
@@ -383,17 +386,25 @@ export default function Home() {
             </button>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row gap-2 mb-4">
+        <form 
+          onSubmit={(e) => {
+            e.preventDefault();
+            addPayment();
+          }}
+          className="flex flex-col sm:flex-row gap-2 mb-4"
+        >
           <div className="flex-1 flex flex-col justify-end">
             <label className="block text-sm font-medium mb-1" htmlFor="payer">支払者</label>
             <select
               id="payer"
+              name="payer"
               className="border rounded h-12 w-full focus:outline-none focus:ring-2 focus:ring-blue-300"
               value={payment.payerId}
               onChange={(e) => {
                 const val = e.target.value;
                 setPayment((p) => ({ ...p, payerId: val === "" ? "" : val }));
               }}
+              required
             >
               <option value="">支払者を選択</option>
               {members.map((member) => (
@@ -406,9 +417,11 @@ export default function Home() {
             <label className="block text-sm font-medium mb-1" htmlFor="amount">金額</label>
             <input
               id="amount"
+              name="amount"
+              type="number"
+              min="1"
+              step="0.01"
               className={`border rounded h-12 w-full focus:outline-none focus:ring-2 focus:ring-blue-300 ${isAmountInvalid ? "border-red-500" : ""}`}
-              type="text"
-              min="0"
               value={payment.amount}
               onChange={(e) => {
                 // 全角数字を半角に変換
@@ -416,12 +429,7 @@ export default function Home() {
                 setPayment((p) => ({ ...p, amount: half }));
               }}
               placeholder="金額"
-              onKeyDown={(e) => {
-                if ((e.nativeEvent as any).isComposing) return;
-                if (e.key === "Enter") {
-                  addPayment();
-                }
-              }}
+              required
             />
             {/* バリデーション文をabsoluteでinput下に重ねて表示 */}
             {isAmountInvalid && (
@@ -433,9 +441,11 @@ export default function Home() {
             <label className="block text-sm font-medium mb-1" htmlFor="currency">通貨</label>
             <select
               id="currency"
+              name="currency"
               className="border rounded h-12 w-full focus:outline-none focus:ring-2 focus:ring-blue-300"
               value={payment.currency}
               onChange={(e) => setPayment((p) => ({ ...p, currency: e.target.value }))}
+              required
             >
               {SUPPORTED_CURRENCIES.map((currency) => (
                 <option key={currency.code} value={currency.code}>
@@ -449,24 +459,27 @@ export default function Home() {
             <label className="block text-sm font-medium mb-1" htmlFor="desc">用途</label>
             <input
               id="desc"
+              name="description"
+              type="text"
               className="border rounded h-12 w-full focus:outline-none focus:ring-2 focus:ring-blue-300"
               value={payment.description}
               onChange={(e) => setPayment((p) => ({ ...p, description: e.target.value }))}
               placeholder="用途 (例: ホテル)"
-              onKeyDown={(e) => {
-                if ((e.nativeEvent as any).isComposing) return;
-                if (e.key === "Enter") {
-                  addPayment();
-                }
-              }}
+              required
             />
             <div className="min-h-[14px]"></div>
           </div>
           <div className="flex flex-col justify-end items-end">
-            <button className="bg-green-500 hover:bg-green-600 text-white rounded px-6 h-12 min-w-[100px] font-semibold transition self-end" style={{ width: "auto" }} onClick={addPayment}>追加</button>
+            <button 
+              type="submit"
+              className="bg-green-500 hover:bg-green-600 text-white rounded px-6 h-12 min-w-[100px] font-semibold transition self-end" 
+              style={{ width: "auto" }}
+            >
+              追加
+            </button>
             <div className="min-h-[14px]"></div>
           </div>
-        </div>
+        </form>
         <ul className="divide-y divide-gray-200 bg-gray-50 rounded-lg border border-gray-200">
           {payments.map((payment) => {
             const payer = members.find((member) => member.id === payment.payerId)?.name || "";
@@ -475,70 +488,89 @@ export default function Home() {
             if (isEditing) {
               return (
                 <li key={payment.id} className="px-3 py-3 bg-blue-50 border-l-4 border-blue-400">
-                  <div className="flex flex-col sm:flex-row gap-2 mb-3">
-                    <div className="flex-1">
-                      <label className="block text-xs font-medium mb-1 text-gray-600">支払者</label>
-                      <select
-                        className="border rounded h-8 w-full text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
-                        value={editingPayment.payerId}
-                        onChange={(e) => setEditingPayment(prev => ({ ...prev, payerId: e.target.value }))}
+                  <form 
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      saveEdit();
+                    }}
+                  >
+                    <div className="flex flex-col sm:flex-row gap-2 mb-3">
+                      <div className="flex-1">
+                        <label className="block text-xs font-medium mb-1 text-gray-600">支払者</label>
+                        <select
+                          name="payer"
+                          className="border rounded h-8 w-full text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
+                          value={editingPayment.payerId}
+                          onChange={(e) => setEditingPayment(prev => ({ ...prev, payerId: e.target.value }))}
+                          required
+                        >
+                          {members.map((member) => (
+                            <option key={member.id} value={member.id}>{member.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-xs font-medium mb-1 text-gray-600">金額</label>
+                        <input
+                          name="amount"
+                          type="number"
+                          min="1"
+                          step="0.01"
+                          className="border rounded h-8 w-full text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
+                          value={editingPayment.amount}
+                          onChange={(e) => {
+                            const half = toHalfWidth(e.target.value);
+                            setEditingPayment(prev => ({ ...prev, amount: half }));
+                          }}
+                          placeholder="金額"
+                          required
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-xs font-medium mb-1 text-gray-600">通貨</label>
+                        <select
+                          name="currency"
+                          className="border rounded h-8 w-full text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
+                          value={editingPayment.currency}
+                          onChange={(e) => setEditingPayment(prev => ({ ...prev, currency: e.target.value }))}
+                          required
+                        >
+                          {SUPPORTED_CURRENCIES.map((currency) => (
+                            <option key={currency.code} value={currency.code}>
+                              {currency.symbol} {currency.code}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex-1">
+                        <label className="block text-xs font-medium mb-1 text-gray-600">用途</label>
+                        <input
+                          name="description"
+                          type="text"
+                          className="border rounded h-8 w-full text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
+                          value={editingPayment.description}
+                          onChange={(e) => setEditingPayment(prev => ({ ...prev, description: e.target.value }))}
+                          placeholder="用途"
+                          required
+                        />
+                      </div>
+                    </div>
+                    <div className="flex gap-2 justify-end">
+                      <button 
+                        type="submit"
+                        className="text-xs bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded transition"
                       >
-                        {members.map((m) => (
-                          <option key={m.id} value={m.id}>{m.name}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-xs font-medium mb-1 text-gray-600">金額</label>
-                      <input
-                        className="border rounded h-8 w-full text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
-                        type="text"
-                        value={editingPayment.amount}
-                        onChange={(e) => {
-                          const half = toHalfWidth(e.target.value);
-                          setEditingPayment(prev => ({ ...prev, amount: half }));
-                        }}
-                        placeholder="金額"
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-xs font-medium mb-1 text-gray-600">通貨</label>
-                      <select
-                        className="border rounded h-8 w-full text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
-                        value={editingPayment.currency}
-                        onChange={(e) => setEditingPayment(prev => ({ ...prev, currency: e.target.value }))}
+                        保存
+                      </button>
+                      <button 
+                        type="button"
+                        className="text-xs bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded transition"
+                        onClick={cancelEdit}
                       >
-                        {SUPPORTED_CURRENCIES.map((currency) => (
-                          <option key={currency.code} value={currency.code}>
-                            {currency.symbol} {currency.code}
-                          </option>
-                        ))}
-                      </select>
+                        キャンセル
+                      </button>
                     </div>
-                    <div className="flex-1">
-                      <label className="block text-xs font-medium mb-1 text-gray-600">用途</label>
-                      <input
-                        className="border rounded h-8 w-full text-xs focus:outline-none focus:ring-1 focus:ring-blue-300"
-                        value={editingPayment.description}
-                        onChange={(e) => setEditingPayment(prev => ({ ...prev, description: e.target.value }))}
-                        placeholder="用途"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex gap-2 justify-end">
-                    <button 
-                      className="text-xs bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded transition"
-                      onClick={saveEdit}
-                    >
-                      保存
-                    </button>
-                    <button 
-                      className="text-xs bg-gray-500 hover:bg-gray-600 text-white px-3 py-1 rounded transition"
-                      onClick={cancelEdit}
-                    >
-                      キャンセル
-                    </button>
-                  </div>
+                  </form>
                 </li>
               );
             }
