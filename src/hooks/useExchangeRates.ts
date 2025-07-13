@@ -27,13 +27,18 @@ export const useExchangeRates = () => {
     setError(null);
     
     try {
-      console.log('Using free API'); // デバッグ用
+      const apiKey = process.env.NEXT_PUBLIC_EXCHANGE_RATE_API_KEY;
+      console.log('API Key exists:', !!apiKey); // デバッグ用
+      
+      if (!apiKey) {
+        throw new Error('APIキーが設定されていません');
+      }
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒タイムアウト
       
       const response = await fetch(
-        `https://api.exchangerate.host/live?base=USD`,
+        `https://api.exchangerate.host/live?access_key=${apiKey}&base=USD`,
         { signal: controller.signal }
       );
       
