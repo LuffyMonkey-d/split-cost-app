@@ -19,7 +19,7 @@ export const useExchangeRates = () => {
           return;
         }
       }
-    } catch (error) {
+    } catch {
       // ローカルストレージの読み取りエラーは無視
     }
 
@@ -27,26 +27,26 @@ export const useExchangeRates = () => {
     setError(null);
     
     try {
-      const apiKey = process.env.NEXT_PUBLIC_EXCHANGE_RATE_API_KEY;
-      if (!apiKey) {
-        throw new Error('APIキーが設定されていません');
-      }
+      console.log('Using free API'); // デバッグ用
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒タイムアウト
       
       const response = await fetch(
-        `https://api.exchangerate.host/live?access_key=${apiKey}&base=USD`,
+        `https://api.exchangerate.host/live?base=USD`,
         { signal: controller.signal }
       );
       
       clearTimeout(timeoutId);
+      
+      console.log('Response status:', response.status); // デバッグ用
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
+      console.log('API Response:', data); // デバッグ用
       
       if (data.success) {
         const exchangeRate: ExchangeRate = {
@@ -62,13 +62,14 @@ export const useExchangeRates = () => {
         // ローカルストレージへの保存を試行
         try {
           localStorage.setItem('exchangeRates', JSON.stringify(exchangeRate));
-        } catch (error) {
+        } catch {
           // ローカルストレージの書き込みエラーは無視
         }
       } else {
         throw new Error(data.error?.info || '為替レート取得に失敗しました');
       }
     } catch (error) {
+      console.error('Exchange rate error:', error); // デバッグ用
       const fallbackRates = getFallbackExchangeRates();
       setExchangeRates(fallbackRates);
       setError(error instanceof Error ? error.message : '為替レート取得に失敗しました');

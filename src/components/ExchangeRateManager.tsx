@@ -1,5 +1,3 @@
-import { ExchangeRate } from '../types';
-
 type Props = {
   isLoadingRates: boolean;
   error: string | null;

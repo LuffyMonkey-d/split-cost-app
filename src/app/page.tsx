@@ -178,7 +178,12 @@ export default function Home() {
   };
 
   // 支払い詳細を取得する関数
-  const getPaymentDetails = (memberId: string) => {
+  const getPaymentDetails = (memberId: string): {
+    amount: number;
+    currency: string;
+    jpyAmount: number;
+    description: string;
+  }[] => {
     return payments
       .filter((payment) => payment.payerId === memberId)
       .map((payment) => ({

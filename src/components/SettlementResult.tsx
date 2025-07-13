@@ -6,9 +6,16 @@ type SettlementItem = {
   diff: number;
 };
 
+type PaymentDetail = {
+  amount: number;
+  currency: string;
+  jpyAmount: number;
+  description: string;
+};
+
 type Props = {
   settlement: SettlementItem[];
-  getPaymentDetails: (memberId: string) => any[];
+  getPaymentDetails: (memberId: string) => PaymentDetail[];
   getCurrencyTotals: () => Record<string, { amount: number; jpyAmount: number }>;
   payments: Payment[];
   members: Member[];
