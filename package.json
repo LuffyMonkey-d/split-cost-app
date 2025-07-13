@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "docker:dev": "docker-compose up app-dev",
+    "docker:build": "docker-compose build",
+    "docker:prod": "docker-compose up app-prod",
+    "docker:down": "docker-compose down",
+    "docker:clean": "docker-compose down -v --remove-orphans"
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.1.11",

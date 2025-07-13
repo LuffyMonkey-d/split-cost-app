@@ -51,7 +51,7 @@ export const PaymentForm = ({
             name="amount"
             type="number"
             min="1"
-            step="0.01"
+            step="1"
             className={`border rounded h-12 w-full px-4 focus:outline-none focus:ring-2 focus:ring-amber-300 ${isAmountInvalid ? "border-red-500" : ""}`}
             value={payment.amount}
             onChange={(e) => {

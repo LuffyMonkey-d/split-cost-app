@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/next"
+    }
+  ],
+  "env": {
+    "NEXT_PUBLIC_EXCHANGE_RATE_API_KEY": "@exchange_rate_api_key"
+  },
+  "functions": {
+    "src/app/**/*.ts": {
+      "maxDuration": 10
+    }
+  }
+} 

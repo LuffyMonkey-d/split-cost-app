@@ -5,32 +5,48 @@ import { getFallbackExchangeRates } from '../utils/exchangeRate';
 export const useExchangeRates = () => {
   const [exchangeRates, setExchangeRates] = useState<ExchangeRate | null>(null);
   const [isLoadingRates, setIsLoadingRates] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchExchangeRates = async () => {
-    const storedRates = localStorage.getItem('exchangeRates');
-    if (storedRates) {
-      const rates: ExchangeRate = JSON.parse(storedRates);
-      if (rates.expiresAt > Date.now()) {
-        console.log('ローカルストレージから為替レートを取得:', rates);
-        setExchangeRates(rates);
-        return;
+    // ローカルストレージからの取得を試行
+    try {
+      const storedRates = localStorage.getItem('exchangeRates');
+      if (storedRates) {
+        const rates: ExchangeRate = JSON.parse(storedRates);
+        if (rates.expiresAt > Date.now()) {
+          setExchangeRates(rates);
+          setError(null);
+          return;
+        }
       }
+    } catch (error) {
+      // ローカルストレージの読み取りエラーは無視
     }
 
     setIsLoadingRates(true);
+    setError(null);
+    
     try {
-      console.log('為替レートAPIを呼び出し中...');
       const apiKey = process.env.NEXT_PUBLIC_EXCHANGE_RATE_API_KEY;
       if (!apiKey) {
-        console.error('APIキーが設定されていません');
         throw new Error('APIキーが設定されていません');
       }
       
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10秒タイムアウト
+      
       const response = await fetch(
-        `https://api.exchangerate.host/live?access_key=${apiKey}&base=USD`
+        `https://api.exchangerate.host/live?access_key=${apiKey}&base=USD`,
+        { signal: controller.signal }
       );
+      
+      clearTimeout(timeoutId);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
       const data = await response.json();
-      console.log('APIレスポンス:', data);
       
       if (data.success) {
         const exchangeRate: ExchangeRate = {
@@ -40,16 +56,22 @@ export const useExchangeRates = () => {
           expiresAt: Date.now() + 60 * 60 * 1000
         };
         
-        console.log('為替レートを設定:', exchangeRate);
         setExchangeRates(exchangeRate);
-        localStorage.setItem('exchangeRates', JSON.stringify(exchangeRate));
+        setError(null);
+        
+        // ローカルストレージへの保存を試行
+        try {
+          localStorage.setItem('exchangeRates', JSON.stringify(exchangeRate));
+        } catch (error) {
+          // ローカルストレージの書き込みエラーは無視
+        }
       } else {
-        console.error('為替レート取得エラー:', data.error);
-        setExchangeRates(getFallbackExchangeRates());
+        throw new Error(data.error?.info || '為替レート取得に失敗しました');
       }
     } catch (error) {
-      console.error('為替レート取得エラー:', error);
-      setExchangeRates(getFallbackExchangeRates());
+      const fallbackRates = getFallbackExchangeRates();
+      setExchangeRates(fallbackRates);
+      setError(error instanceof Error ? error.message : '為替レート取得に失敗しました');
     } finally {
       setIsLoadingRates(false);
     }
@@ -59,5 +81,5 @@ export const useExchangeRates = () => {
     fetchExchangeRates();
   }, []);
 
-  return { exchangeRates, isLoadingRates, fetchExchangeRates };
+  return { exchangeRates, isLoadingRates, error, fetchExchangeRates };
 }; 

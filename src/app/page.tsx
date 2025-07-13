@@ -28,7 +28,7 @@ export default function Home() {
     description: "",
   });
 
-  const { exchangeRates, isLoadingRates, fetchExchangeRates } =
+  const { exchangeRates, isLoadingRates, error, fetchExchangeRates } =
     useExchangeRates();
 
   // 参加者追加
@@ -228,8 +228,8 @@ export default function Home() {
         <div className="flex justify-between items-center mb-4 border-b pb-2">
           <h2 className="font-semibold text-lg">支払い記録</h2>
           <ExchangeRateManager
-            exchangeRates={exchangeRates}
             isLoadingRates={isLoadingRates}
+            error={error}
             fetchExchangeRates={fetchExchangeRates}
           />
         </div>
